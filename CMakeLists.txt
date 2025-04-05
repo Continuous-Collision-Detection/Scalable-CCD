@@ -169,7 +169,7 @@ if(SCALABLE_CCD_WITH_CUDA)
   # library to be built with -dc as the member functions could be called by
   # other libraries and executables.
   set_target_properties(scalable_ccd PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
-  
+
   if(DEFINED SCALABLE_CCD_CUDA_ARCHITECTURES)
     message(STATUS "CUDA_ARCHITECTURES was specified, skipping auto-detection")
     set(CMAKE_CUDA_ARCHITECTURES ${SCALABLE_CCD_CUDA_ARCHITECTURES})
@@ -195,11 +195,12 @@ if(SCALABLE_CCD_WITH_CUDA)
       BUILD_RPATH ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
   endif()
 
-  target_compile_options(scalable_ccd PRIVATE 
+  target_compile_options(scalable_ccd PRIVATE
     $<$<COMPILE_LANGUAGE:CUDA>:
       --generate-line-info
       --use_fast_math
       --relocatable-device-code=true
+      --expt-relaxed-constexpr
     >
   )
 
