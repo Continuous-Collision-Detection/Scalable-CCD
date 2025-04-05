@@ -34,14 +34,23 @@ public:
         thrust::copy(mat.data(), mat.data() + mat.size(), m_data.begin());
     }
 
-#ifndef SCALABLE_CCD_USE_DOUBLE
-    DeviceMatrix(const Eigen::MatrixXd& mat) : DeviceMatrix(mat.cast<T>()) { }
+    template <typename U = T, typename std::enable_if<!std::is_same<U, double>::value>::type* = nullptr>
+    DeviceMatrix(const Eigen::MatrixXd& mat)
+        : m_rows(mat.rows())
+        , m_cols(mat.cols())
+        , m_data(mat.size())
+    {
+        thrust::copy(mat.data(), mat.data() + mat.size(), m_data.begin());
+    }
 
+    template <typename U = T, typename std::enable_if<!std::is_same<U, double>::value>::type* = nullptr>
     void operator=(const Eigen::MatrixXd& mat)
     {
-        return operator=(mat.cast<T>());
+        m_rows = mat.rows();
+        m_cols = mat.cols();
+        m_data.resize(mat.size());
+        thrust::copy(mat.data(), mat.data() + mat.size(), m_data.begin());
     }
-#endif
 
     // TODO: Add function to retrieve the matrix from the device.
 

@@ -28,6 +28,8 @@ make_Scalar3(const Scalar& a, const Scalar& b, const Scalar& c)
 
 #else
 
+__device__ constexpr float SCALAR_MAX = scalable_ccd::SCALAR_MAX;
+
 using Scalar2 = float2;
 using Scalar3 = float3;
 

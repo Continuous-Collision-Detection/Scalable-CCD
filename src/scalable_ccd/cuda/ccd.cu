@@ -77,7 +77,7 @@ namespace {
     }
 } // namespace
 
-double
+Scalar
 ccd(const Eigen::MatrixXd& vertices_t0,
     const Eigen::MatrixXd& vertices_t1,
     const Eigen::MatrixXi& edges,

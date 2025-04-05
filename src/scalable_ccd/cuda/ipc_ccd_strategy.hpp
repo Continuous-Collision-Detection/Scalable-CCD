@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Eigen/Core>
+#include <scalable_ccd/scalar.hpp>
 
 namespace scalable_ccd::cuda {
 
@@ -13,13 +14,13 @@ namespace scalable_ccd::cuda {
 /// @param max_iter Maximum number of iterations
 /// @param tolerance Tolerance for the CCD algorithm
 /// @return Time of impact
-double ipc_ccd_strategy(
+Scalar ipc_ccd_strategy(
     const Eigen::MatrixXd& V0,
     const Eigen::MatrixXd& V1,
     const Eigen::MatrixXi& E,
     const Eigen::MatrixXi& F,
-    const double min_distance,
+    const Scalar min_distance,
     const int max_iter,
-    const double tolerance);
+    const Scalar tolerance);
 
 } // namespace scalable_ccd::cuda
