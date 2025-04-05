@@ -200,6 +200,10 @@ if(SCALABLE_CCD_WITH_CUDA)
       --generate-line-info
       --use_fast_math
       --relocatable-device-code=true
+    >
+  )
+  target_compile_options(scalable_ccd PUBLIC
+    $<$<COMPILE_LANGUAGE:CUDA>:
       --expt-relaxed-constexpr
     >
   )
