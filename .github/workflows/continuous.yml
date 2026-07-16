@@ -166,12 +166,16 @@ jobs:
           sub-packages: '["nvcc"]'
           method: 'network'
 
-      # On Windows the action sets CUDA_PATH but does not add nvcc to PATH, so
-      # CMake's check_language(CUDA) can't find the compiler. Add it explicitly.
-      - name: Add CUDA to PATH (Windows)
+      # The action sets CUDA_PATH but, combined with msvc-dev-cmd re-exporting
+      # PATH, nvcc does not reliably land on PATH for CMake's
+      # check_language(CUDA). Point CMake at nvcc directly via CUDACXX (honored
+      # before any PATH search) and add it to PATH for good measure.
+      - name: Locate CUDA compiler (Windows)
         if: runner.os == 'Windows'
         run: |
           "$env:CUDA_PATH\bin" | Out-File -FilePath $env:GITHUB_PATH -Append
+          $nvcc = "$env:CUDA_PATH\bin\nvcc.exe" -replace '\\', '/'
+          "CUDACXX=$nvcc" | Out-File -FilePath $env:GITHUB_ENV -Append
 
       - name: Get number of CPU cores
         uses: SimenB/github-actions-cpu-cores@v2.0.0
