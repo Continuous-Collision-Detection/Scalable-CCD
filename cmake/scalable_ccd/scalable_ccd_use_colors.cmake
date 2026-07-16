@@ -17,7 +17,7 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
   # > fatal error C1090: PDB API call failed, error code '23'
   # To avoid this problem, we force PDB write to be synchronous with /FS.
   # https://developercommunity.visualstudio.com/content/problem/48897/c1090-pdb-api-call-failed-error-code-23.html
-  add_compile_options("$<$<COMPILE_LANGUAGE:C,CXX>:/FS>")
+  add_compile_options($<$<COMPILE_LANGUAGE:C>:/FS> $<$<COMPILE_LANGUAGE:CXX>:/FS>)
 else()
   include(scalable_ccd_filter_flags)
   set(SCALABLE_CCD_GLOBAL_FLAGS
