@@ -193,6 +193,27 @@ if(SCALABLE_CCD_WITH_CUDA)
     set_property(TARGET scalable_ccd
       PROPERTY
       BUILD_RPATH ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
+  elseif(MSVC)
+    # MSVC host-compiler flags required to compile scalable_ccd's CUDA sources
+    # (and public *.cuh headers, hence PUBLIC so consumers such as the tests
+    # inherit them through the link graph, mirroring --expt-relaxed-constexpr).
+    #
+    #   * -Xcompiler=/Zc:preprocessor (CUDA): the .cu files include CCCL headers
+    #     (thrust/cub), whose <cuda/std/__cccl/preprocessor.h> emits a hard
+    #     #error unless the standard-conforming preprocessor is used. Forwarded
+    #     to the host compiler for the nvcc host pass.
+    #   * /Zc:preprocessor (CXX): defensive. No .cpp currently reaches CCCL, but
+    #     keep it so a future CXX TU that includes thrust/cub does not break.
+    #   * -Xcompiler=/utf-8 (CUDA): spdlog's bundled fmt needs a UTF-8 execution
+    #     charset. Our fmt patch forces is_utf8_enabled=1 under __CUDACC__ (the
+    #     front-end can't run fmt's compile-time probe); this flag makes that
+    #     assumption true for the host pass. CXX .cpp files get /utf-8
+    #     transitively from spdlog (it exports it PUBLIC for CXX/MSVC).
+    target_compile_options(scalable_ccd PUBLIC
+        $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=/utf-8>
+        $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=/Zc:preprocessor>
+        $<$<COMPILE_LANGUAGE:CXX>:/Zc:preprocessor>
+    )
   endif()
 
   target_compile_options(scalable_ccd PRIVATE

@@ -22,7 +22,7 @@ void setup(
 
     if (!boxes_per_thread) {
         boxes_per_thread =
-            std::max(max_shared_memory / sizeof(AABB) / max_threads, 1ul);
+            std::max(max_shared_memory / sizeof(AABB) / max_threads, size_t(1));
     }
     logger().trace("Boxes per thread: {:d}", boxes_per_thread);
 

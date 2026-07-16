@@ -90,6 +90,7 @@ bin*
 .idea/
 *.code-workspace
 *.vscode
+*.vs
 
 ## python
 # Byte-compiled / optimized / DLL files
