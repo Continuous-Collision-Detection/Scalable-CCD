@@ -128,14 +128,20 @@ jobs:
         include:
           - os: ubuntu-latest
             name: Linux
+            # Linux sub-package filtering requires the 'network' method.
+            cuda_method: 'network'
             cuda_subpackages: '["nvcc"]'
           - os: windows-latest
             name: Windows
             # Windows splits the toolkit into many fine-grained components whose
             # headers depend on each other (nvcc -> cudart -> crt -> thrust/cub
             # ...), and an invalid component name aborts the whole install. Rather
-            # than enumerate them, install the full toolkit (empty list = no -s
-            # filter). Slower to install, but guaranteed to have every header.
+            # than enumerate them, install the full toolkit: the 'local' method
+            # with an empty sub-package list installs everything. Slower to
+            # install, but guaranteed to have every header. (The 'network' method
+            # only fetches the packages named in sub-packages, so it cannot do a
+            # full install.)
+            cuda_method: 'local'
             cuda_subpackages: '[]'
     steps:
       - name: Checkout repository
@@ -171,7 +177,7 @@ jobs:
         with:
           cuda: '13.2.0'
           sub-packages: ${{ matrix.cuda_subpackages }}
-          method: 'network'
+          method: ${{ matrix.cuda_method }}
 
       # The action sets CUDA_PATH but, combined with msvc-dev-cmd re-exporting
       # PATH, nvcc does not reliably land on PATH for CMake's
