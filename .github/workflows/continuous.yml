@@ -115,19 +115,21 @@ jobs:
       - name: Tests
         run: cd build; ctest --verbose -j ${{ steps.cpu-cores.outputs.count }}
 
-  build_cuda: # no runtime support for CUDA, so only build on Linux
+  build_cuda: # CI runners have no GPU, so these jobs build only (no tests)
     name: ${{ matrix.name }} CUDA (${{ matrix.config }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-latest, windows-latest]
         config:
           - Debug
           # - Release # cannot run multiple cuda-toolkit jobs in parallel
         include:
           - os: ubuntu-latest
             name: Linux
+          - os: windows-latest
+            name: Windows
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4.0.0
@@ -139,6 +141,23 @@ jobs:
         run: |
           sudo apt-get install ccache
           echo 'CACHE_PATH=~/.cache/ccache' >> "$GITHUB_ENV"
+
+      - name: Dependencies (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          choco install ccache
+          "CACHE_PATH=${env:LOCALAPPDATA}\ccache" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      # Ninja + MSVC are needed to drive nvcc's host compiler on Windows.
+      - name: Install Ninja
+        if: runner.os == 'Windows'
+        uses: seanmiddleditch/gha-setup-ninja@master
+
+      - name: Setup MSVC (Windows)
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
 
       - uses: Jimver/cuda-toolkit@v0.2.22
         id: cuda-toolkit
@@ -164,7 +183,8 @@ jobs:
           ccache -V && ccache --show-config
           ccache --show-stats && ccache --zero-stats
 
-      - name: Configure
+      - name: Configure (Linux)
+        if: runner.os == 'Linux'
         run: |
           mkdir -p build
           cd build
@@ -173,6 +193,18 @@ jobs:
             -DSCALABLE_CCD_CUDA_ARCHITECTURES=75 \
             -DSCALABLE_CCD_BUILD_TESTS=ON \
             -DCMAKE_BUILD_TYPE=${{ matrix.config }}
+
+      - name: Configure (Windows)
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: |
+          cmake -G Ninja ^
+            -DSCALABLE_CCD_WITH_CUDA=ON ^
+            -DSCALABLE_CCD_CUDA_ARCHITECTURES=75 ^
+            -DSCALABLE_CCD_BUILD_TESTS=ON ^
+            -DCMAKE_BUILD_TYPE=${{ matrix.config }} ^
+            -B build ^
+            -S .
 
       - name: Build
         run: |
