@@ -162,10 +162,11 @@ jobs:
         if: runner.os == 'Windows'
         uses: seanmiddleditch/gha-setup-ninja@master
 
-      # Install CUDA before msvc-dev-cmd: the toolkit adds its bin dir (nvcc) to
-      # PATH, and msvc-dev-cmd snapshots PATH into GITHUB_ENV for later steps, so
-      # it must run afterward for that snapshot to include nvcc. With nvcc on
-      # PATH, CMake's check_language(CUDA) finds it without further hints.
+      # Install CUDA before msvc-dev-cmd so the toolkit's bin dir lands on PATH
+      # before msvc-dev-cmd snapshots PATH into GITHUB_ENV for later steps.
+      # (check_language(CUDA) still does not reliably autodetect nvcc on this
+      # runner even with it on PATH, so the Windows configure also passes
+      # -DCMAKE_CUDA_COMPILER explicitly.)
       - uses: Jimver/cuda-toolkit@v0.2.35
         id: cuda-toolkit
         with:
@@ -215,6 +216,7 @@ jobs:
             -DSCALABLE_CCD_WITH_CUDA=ON ^
             -DSCALABLE_CCD_CUDA_ARCHITECTURES=75 ^
             -DSCALABLE_CCD_BUILD_TESTS=ON ^
+            -DCMAKE_CUDA_COMPILER="%CUDA_PATH%\bin\nvcc.exe" ^
             -DCMAKE_BUILD_TYPE=${{ matrix.config }} ^
             -B build ^
             -S .
