@@ -168,14 +168,18 @@ jobs:
 
       # The action sets CUDA_PATH but, combined with msvc-dev-cmd re-exporting
       # PATH, nvcc does not reliably land on PATH for CMake's
-      # check_language(CUDA). Point CMake at nvcc directly via CUDACXX (honored
-      # before any PATH search) and add it to PATH for good measure.
+      # check_language(CUDA). Point CMake at nvcc directly (passed to cmake as
+      # -DCMAKE_CUDA_COMPILER below) and add it to PATH for good measure.
+      # Also verify the install actually produced nvcc.exe.
       - name: Locate CUDA compiler (Windows)
         if: runner.os == 'Windows'
         run: |
+          Write-Host "CUDA_PATH = $env:CUDA_PATH"
+          Get-ChildItem "$env:CUDA_PATH\bin" -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name
+          $nvcc = "$env:CUDA_PATH\bin\nvcc.exe"
+          if (-not (Test-Path $nvcc)) { throw "nvcc.exe not found at $nvcc" }
           "$env:CUDA_PATH\bin" | Out-File -FilePath $env:GITHUB_PATH -Append
-          $nvcc = "$env:CUDA_PATH\bin\nvcc.exe" -replace '\\', '/'
-          "CUDACXX=$nvcc" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "CUDACXX=$($nvcc -replace '\\', '/')" | Out-File -FilePath $env:GITHUB_ENV -Append
 
       - name: Get number of CPU cores
         uses: SimenB/github-actions-cpu-cores@v2.0.0
@@ -213,6 +217,7 @@ jobs:
             -DSCALABLE_CCD_WITH_CUDA=ON ^
             -DSCALABLE_CCD_CUDA_ARCHITECTURES=75 ^
             -DSCALABLE_CCD_BUILD_TESTS=ON ^
+            -DCMAKE_CUDA_COMPILER="%CUDA_PATH%\bin\nvcc.exe" ^
             -DCMAKE_BUILD_TYPE=${{ matrix.config }} ^
             -B build ^
             -S .
