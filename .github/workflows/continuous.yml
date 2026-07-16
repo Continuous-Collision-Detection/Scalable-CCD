@@ -166,6 +166,13 @@ jobs:
           sub-packages: '["nvcc"]'
           method: 'network'
 
+      # On Windows the action sets CUDA_PATH but does not add nvcc to PATH, so
+      # CMake's check_language(CUDA) can't find the compiler. Add it explicitly.
+      - name: Add CUDA to PATH (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          "$env:CUDA_PATH\bin" | Out-File -FilePath $env:GITHUB_PATH -Append
+
       - name: Get number of CPU cores
         uses: SimenB/github-actions-cpu-cores@v2.0.0
         id: cpu-cores
