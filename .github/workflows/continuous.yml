@@ -128,8 +128,12 @@ jobs:
         include:
           - os: ubuntu-latest
             name: Linux
+            cuda_subpackages: '["nvcc"]'
           - os: windows-latest
             name: Windows
+            # Windows components are split finer than Linux: nvcc alone lacks
+            # the runtime headers (cuda_runtime.h) and thrust/cub, so list them.
+            cuda_subpackages: '["nvcc", "cudart", "thrust", "cub", "cccl"]'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4.0.0
@@ -163,7 +167,7 @@ jobs:
         id: cuda-toolkit
         with:
           cuda: '13.2.0'
-          sub-packages: '["nvcc"]'
+          sub-packages: ${{ matrix.cuda_subpackages }}
           method: 'network'
 
       # The action sets CUDA_PATH but, combined with msvc-dev-cmd re-exporting
@@ -175,7 +179,10 @@ jobs:
         if: runner.os == 'Windows'
         run: |
           Write-Host "CUDA_PATH = $env:CUDA_PATH"
+          Write-Host "--- bin ---"
           Get-ChildItem "$env:CUDA_PATH\bin" -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name
+          Write-Host "--- include (top level) ---"
+          Get-ChildItem "$env:CUDA_PATH\include" -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name
           $nvcc = "$env:CUDA_PATH\bin\nvcc.exe"
           if (-not (Test-Path $nvcc)) { throw "nvcc.exe not found at $nvcc" }
           "$env:CUDA_PATH\bin" | Out-File -FilePath $env:GITHUB_PATH -Append
