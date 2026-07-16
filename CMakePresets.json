@@ -82,30 +82,5 @@
       "displayName": "CUDA (Debug)",
       "description": "Debug build with CUDA support"
     }
-  ],
-  "testPresets": [{
-      "name": "default-tests",
-      "description": "Run default tests",
-      "configurePreset": "test",
-      "execution": {
-        "stopOnFailure": true
-      }
-    },
-    {
-      "name": "cuda-tests-release",
-      "description": "Run tests with CUDA (Release) enabled",
-      "configurePreset": "cuda-release",
-      "execution": {
-        "stopOnFailure": true
-      }
-    },
-    {
-      "name": "cuda-tests-debug",
-      "description": "Run tests with CUDA (Debug) enabled",
-      "configurePreset": "cuda-debug",
-      "execution": {
-        "stopOnFailure": true
-      }
-    }
   ]
 }

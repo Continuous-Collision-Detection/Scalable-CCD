@@ -5,6 +5,10 @@ on:
     branches: [main]
   pull_request:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 env:
   CTEST_OUTPUT_ON_FAILURE: ON
   CTEST_PARALLEL_LEVEL: 2
@@ -27,7 +31,7 @@ jobs:
             name: Windows
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4.0.0
+        uses: actions/checkout@v6
         with:
           fetch-depth: 10
 
@@ -54,13 +58,19 @@ jobs:
         if: runner.os == 'Windows'
         uses: seanmiddleditch/gha-setup-ninja@master
 
+      - name: Setup MSVC (Windows)
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
       - name: Get number of CPU cores
-        uses: SimenB/github-actions-cpu-cores@v2.0.0
+        uses: SimenB/github-actions-cpu-cores@v2
         id: cpu-cores
 
       - name: Cache Build
         id: cache-build
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ${{ env.CACHE_PATH }}
           key: ${{ runner.os }}-${{ matrix.config }}-cache
@@ -84,7 +94,6 @@ jobs:
         if: runner.os == 'Windows'
         shell: cmd
         run: |
-          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=x64
           cmake -G Ninja ^
             -DSCALABLE_CCD_BUILD_TESTS=ON ^
             -DCMAKE_BUILD_TYPE=${{ matrix.config }} ^
@@ -101,7 +110,6 @@ jobs:
         if: runner.os == 'Windows'
         shell: cmd
         run: |
-          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=x64
           cmake --build build -j ${{ steps.cpu-cores.outputs.count }} && ccache --show-stats
 
       - name: Tests
