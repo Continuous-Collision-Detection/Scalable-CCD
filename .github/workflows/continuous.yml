@@ -131,12 +131,12 @@ jobs:
             cuda_subpackages: '["nvcc"]'
           - os: windows-latest
             name: Windows
-            # Windows splits the toolkit finer than Linux: nvcc alone lacks the
-            # runtime headers (cuda_runtime.h). cudart adds them. (An invalid
-            # component name aborts the whole install, so keep this to names
-            # known to exist for this CUDA version; the include/ listing in the
-            # "Locate CUDA compiler" step shows what actually landed.)
-            cuda_subpackages: '["nvcc", "cudart"]'
+            # Windows splits the toolkit into many fine-grained components whose
+            # headers depend on each other (nvcc -> cudart -> crt -> thrust/cub
+            # ...), and an invalid component name aborts the whole install. Rather
+            # than enumerate them, install the full toolkit (empty list = no -s
+            # filter). Slower to install, but guaranteed to have every header.
+            cuda_subpackages: '[]'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4.0.0
