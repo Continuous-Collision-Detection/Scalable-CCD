@@ -128,21 +128,16 @@ jobs:
         include:
           - os: ubuntu-latest
             name: Linux
-            # Linux sub-package filtering requires the 'network' method.
-            cuda_method: 'network'
             cuda_subpackages: '["nvcc"]'
           - os: windows-latest
             name: Windows
-            # Windows splits the toolkit into many fine-grained components whose
-            # headers depend on each other (nvcc -> cudart -> crt -> thrust/cub
-            # ...), and an invalid component name aborts the whole install. Rather
-            # than enumerate them, install the full toolkit: the 'local' method
-            # with an empty sub-package list installs everything. Slower to
-            # install, but guaranteed to have every header. (The 'network' method
-            # only fetches the packages named in sub-packages, so it cannot do a
-            # full install.)
-            cuda_method: 'local'
-            cuda_subpackages: '[]'
+            # Windows splits the toolkit into finer components than Linux and an
+            # invalid component name aborts the whole install, so name exactly
+            # what the build needs: nvcc (compiler), cudart (cuda_runtime.h),
+            # crt (crt/host_config.h), cccl (thrust/cub/libcudacxx; the separate
+            # thrust/cub components were removed in CUDA 13). These map to the
+            # redist components cuda_{nvcc,cudart,crt,cccl} minus the cuda_ prefix.
+            cuda_subpackages: '["nvcc", "cudart", "crt", "cccl"]'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4.0.0
@@ -174,7 +169,7 @@ jobs:
         with:
           cuda: '13.2.0'
           sub-packages: ${{ matrix.cuda_subpackages }}
-          method: ${{ matrix.cuda_method }}
+          method: 'network'
 
       - name: Setup MSVC (Windows)
         if: runner.os == 'Windows'
