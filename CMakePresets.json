@@ -1,0 +1,86 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 24
+  },
+  "configurePresets": [{
+      "name": "release",
+      "displayName": "Release Build",
+      "description": "Base preset for release builds",
+      "binaryDir": "${sourceDir}/build/release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_CXX_STANDARD": "17"
+      }
+    },
+    {
+      "name": "debug",
+      "displayName": "Debug Build",
+      "description": "Base preset for debug builds",
+      "binaryDir": "${sourceDir}/build/debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_CXX_STANDARD": "17"
+      }
+    },
+    {
+      "name": "default",
+      "inherits": "release",
+      "displayName": "Default Configuration",
+      "description": "Default build configuration",
+      "binaryDir": "${sourceDir}/build/default"
+    },
+    {
+      "name": "cuda-release",
+      "inherits": "release",
+      "displayName": "CUDA (Release)",
+      "description": "Release build with CUDA support",
+      "binaryDir": "${sourceDir}/build/cuda-release",
+      "cacheVariables": {
+        "SCALABLE_CCD_WITH_CUDA": "ON"
+      }
+    },
+    {
+      "name": "cuda-debug",
+      "inherits": "debug",
+      "displayName": "CUDA (Debug)",
+      "description": "Debug build with CUDA support",
+      "binaryDir": "${sourceDir}/build/cuda-debug",
+      "cacheVariables": {
+        "SCALABLE_CCD_WITH_CUDA": "ON"
+      }
+    }
+  ],
+  "buildPresets": [{
+      "name": "release",
+      "configurePreset": "release",
+      "displayName": "Release Build",
+      "description": "Base preset for release builds"
+    },
+    {
+      "name": "debug",
+      "configurePreset": "debug",
+      "displayName": "Debug Build",
+      "description": "Base preset for debug builds"
+    },
+    {
+      "name": "default-build",
+      "configurePreset": "default",
+      "displayName": "Default Configuration",
+      "description": "Build using default configuration"
+    },
+    {
+      "name": "cuda-release",
+      "configurePreset": "cuda-release",
+      "displayName": "CUDA (Release)",
+      "description": "Build with CUDA support"
+    },
+    {
+      "name": "cuda-debug",
+      "configurePreset": "cuda-debug",
+      "displayName": "CUDA (Debug)",
+      "description": "Debug build with CUDA support"
+    }
+  ]
+}

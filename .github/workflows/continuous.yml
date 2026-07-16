@@ -5,6 +5,10 @@ on:
     branches: [main]
   pull_request:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 env:
   CTEST_OUTPUT_ON_FAILURE: ON
   CTEST_PARALLEL_LEVEL: 2
@@ -27,7 +31,7 @@ jobs:
             name: Windows
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4.0.0
+        uses: actions/checkout@v6
         with:
           fetch-depth: 10
 
@@ -54,13 +58,19 @@ jobs:
         if: runner.os == 'Windows'
         uses: seanmiddleditch/gha-setup-ninja@master
 
+      - name: Setup MSVC (Windows)
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
       - name: Get number of CPU cores
-        uses: SimenB/github-actions-cpu-cores@v2.0.0
+        uses: SimenB/github-actions-cpu-cores@v2
         id: cpu-cores
 
       - name: Cache Build
         id: cache-build
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ${{ env.CACHE_PATH }}
           key: ${{ runner.os }}-${{ matrix.config }}-cache
@@ -84,7 +94,6 @@ jobs:
         if: runner.os == 'Windows'
         shell: cmd
         run: |
-          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=x64
           cmake -G Ninja ^
             -DSCALABLE_CCD_BUILD_TESTS=ON ^
             -DCMAKE_BUILD_TYPE=${{ matrix.config }} ^
@@ -101,28 +110,40 @@ jobs:
         if: runner.os == 'Windows'
         shell: cmd
         run: |
-          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=x64
           cmake --build build -j ${{ steps.cpu-cores.outputs.count }} && ccache --show-stats
 
       - name: Tests
         run: cd build; ctest --verbose -j ${{ steps.cpu-cores.outputs.count }}
 
-  build_cuda: # no runtime support for CUDA, so only build on Linux
+  build_cuda: # CI runners have no GPU, so these jobs build only (no tests)
     name: ${{ matrix.name }} CUDA (${{ matrix.config }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-latest, windows-latest]
         config:
           - Debug
           # - Release # cannot run multiple cuda-toolkit jobs in parallel
         include:
           - os: ubuntu-latest
             name: Linux
+            cuda_subpackages: '["nvcc"]'
+          - os: windows-latest
+            name: Windows
+            # Windows splits the toolkit into finer components than Linux and an
+            # invalid component name aborts the whole install, so name exactly
+            # what the build needs (per the Windows installer subpackage list):
+            #   nvcc   - compiler front-end (nvcc, cudafe++, ptxas, nvlink)
+            #   nvvm   - device compiler backend (cicc); nvcc alone omits it
+            #   cudart - cuda_runtime.h + runtime library
+            #   crt    - crt/host_config.h
+            #   thrust - Thrust, and the CUB/libcudacxx headers it bundles
+            # ("cccl"/"cub" are not valid Windows installer subpackage names.)
+            cuda_subpackages: '["nvcc", "nvvm", "cudart", "crt", "thrust"]'
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4.0.0
+        uses: actions/checkout@v6
         with:
           fetch-depth: 10
 
@@ -132,20 +153,42 @@ jobs:
           sudo apt-get install ccache
           echo 'CACHE_PATH=~/.cache/ccache' >> "$GITHUB_ENV"
 
-      - uses: Jimver/cuda-toolkit@v0.2.22
+      - name: Dependencies (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          choco install ccache
+          "CACHE_PATH=${env:LOCALAPPDATA}\ccache" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - name: Install Ninja
+        if: runner.os == 'Windows'
+        uses: seanmiddleditch/gha-setup-ninja@master
+
+      # Install CUDA before msvc-dev-cmd so the toolkit's bin dir lands on PATH
+      # before msvc-dev-cmd snapshots PATH into GITHUB_ENV for later steps.
+      # (check_language(CUDA) still does not reliably autodetect nvcc on this
+      # runner even with it on PATH, so the Windows configure also passes
+      # -DCMAKE_CUDA_COMPILER explicitly.)
+      - name: Install CUDA Toolkit
+        uses: Jimver/cuda-toolkit@v0.2.35
         id: cuda-toolkit
         with:
-          cuda: '12.8.1'
-          sub-packages: '["nvcc"]'
+          cuda: '13.2.0'
+          sub-packages: ${{ matrix.cuda_subpackages }}
           method: 'network'
 
+      - name: Setup MSVC (Windows)
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
       - name: Get number of CPU cores
-        uses: SimenB/github-actions-cpu-cores@v2.0.0
+        uses: SimenB/github-actions-cpu-cores@v2
         id: cpu-cores
 
       - name: Cache Build
         id: cache-build
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ${{ env.CACHE_PATH }}
           key: ${{ runner.os }}-${{ matrix.config }}-CUDA-cache
@@ -156,7 +199,8 @@ jobs:
           ccache -V && ccache --show-config
           ccache --show-stats && ccache --zero-stats
 
-      - name: Configure
+      - name: Configure (Linux)
+        if: runner.os == 'Linux'
         run: |
           mkdir -p build
           cd build
@@ -165,6 +209,19 @@ jobs:
             -DSCALABLE_CCD_CUDA_ARCHITECTURES=75 \
             -DSCALABLE_CCD_BUILD_TESTS=ON \
             -DCMAKE_BUILD_TYPE=${{ matrix.config }}
+
+      - name: Configure (Windows)
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: |
+          cmake -G Ninja ^
+            -DSCALABLE_CCD_WITH_CUDA=ON ^
+            -DSCALABLE_CCD_CUDA_ARCHITECTURES=75 ^
+            -DSCALABLE_CCD_BUILD_TESTS=ON ^
+            -DCMAKE_CUDA_COMPILER="%CUDA_PATH%\bin\nvcc.exe" ^
+            -DCMAKE_BUILD_TYPE=${{ matrix.config }} ^
+            -B build ^
+            -S .
 
       - name: Build
         run: |
