@@ -133,11 +133,13 @@ jobs:
             name: Windows
             # Windows splits the toolkit into finer components than Linux and an
             # invalid component name aborts the whole install, so name exactly
-            # what the build needs: nvcc (compiler), cudart (cuda_runtime.h),
-            # crt (crt/host_config.h), cccl (thrust/cub/libcudacxx; the separate
-            # thrust/cub components were removed in CUDA 13). These map to the
-            # redist components cuda_{nvcc,cudart,crt,cccl} minus the cuda_ prefix.
-            cuda_subpackages: '["nvcc", "cudart", "crt", "cccl"]'
+            # what the build needs (per the Windows installer subpackage list):
+            #   nvcc   - compiler
+            #   cudart - cuda_runtime.h + runtime library
+            #   crt    - crt/host_config.h
+            #   thrust - Thrust, and the CUB/libcudacxx headers it bundles
+            # ("cccl"/"cub" are not valid Windows installer subpackage names.)
+            cuda_subpackages: '["nvcc", "cudart", "crt", "thrust"]'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4.0.0
