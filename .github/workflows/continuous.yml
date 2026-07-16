@@ -143,7 +143,7 @@ jobs:
             cuda_subpackages: '["nvcc", "nvvm", "cudart", "crt", "thrust"]'
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4.0.0
+        uses: actions/checkout@v6
         with:
           fetch-depth: 10
 
@@ -168,7 +168,8 @@ jobs:
       # (check_language(CUDA) still does not reliably autodetect nvcc on this
       # runner even with it on PATH, so the Windows configure also passes
       # -DCMAKE_CUDA_COMPILER explicitly.)
-      - uses: Jimver/cuda-toolkit@v0.2.35
+      - name: Install CUDA Toolkit
+        uses: Jimver/cuda-toolkit@v0.2.35
         id: cuda-toolkit
         with:
           cuda: '13.2.0'
@@ -182,12 +183,12 @@ jobs:
           arch: x64
 
       - name: Get number of CPU cores
-        uses: SimenB/github-actions-cpu-cores@v2.0.0
+        uses: SimenB/github-actions-cpu-cores@v2
         id: cpu-cores
 
       - name: Cache Build
         id: cache-build
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ${{ env.CACHE_PATH }}
           key: ${{ runner.os }}-${{ matrix.config }}-CUDA-cache
