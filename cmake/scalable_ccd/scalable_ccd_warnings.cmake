@@ -4,157 +4,192 @@
 # ==============================================================================
 
 if(TARGET scalable_ccd::warnings)
-	return()
+  return()
 endif()
-
-set(SCALABLE_CCD_WARNING_FLAGS
-	-Wall
-	-Wextra
-	-Wpedantic
-
-	# -Werror
-
-	# -Wconversion
-	-Werror=enum-conversion
-	-Wfloat-conversion
-
-	# Disable these errors for now, because they are too noisy
-	# -Wno-sign-conversion
-	# -Wno-shorten-64-to-32
-	# -Wunsafe-loop-optimizations # broken with C++11 loops
-	-Wunused
-
-	-Wno-long-long # disable warnings about using long long
-	-Wpointer-arith
-	-Wformat=2
-	-Wuninitialized
-	-Wcast-qual
-	-Wmissing-noreturn
-	-Wmissing-format-attribute
-	-Wredundant-decls
-
-	-Werror=implicit
-	-Werror=nonnull
-	-Werror=init-self
-	-Werror=main
-	-Werror=missing-braces
-	-Werror=sequence-point
-	-Werror=return-type
-	-Werror=trigraphs
-	-Warray-bounds
-	-Werror=write-strings
-	-Werror=address
-	-Werror=int-to-pointer-cast
-	-Werror=pointer-to-int-cast
-	-Werror=inconsistent-missing-override
-	-Werror=return-stack-address
-
-	-Wunused-variable
-	-Wunused-but-set-variable
-	-Wno-unused-parameter
-
-	# -Weffc++
-	-Wold-style-cast
-
-	-Wshadow
-
-	-Wstrict-null-sentinel
-	-Woverloaded-virtual
-	-Wsign-promo
-	-Wstack-protector
-	-Wstrict-aliasing
-	-Wstrict-aliasing=2
-
-	# Warn whenever a switch statement has an index of enumerated type and
-	# lacks a case for one or more of the named codes of that enumeration.
-	-Wswitch
-
-	# This is annoying if all cases are already covered.
-	-Wswitch-default
-
-	# This is annoying if there is a default that covers the rest.
-	# -Wswitch-enum
-	-Wswitch-unreachable
-
-	# -Wcovered-switch-default # Annoying warnings from nlohmann::json
-	-Wcast-align
-	-Wdisabled-optimization
-
-	# -Winline # produces warning on default implicit destructor
-	-Winvalid-pch
-	-Wmissing-include-dirs
-	-Wpacked
-	-Wno-padded
-	-Wstrict-overflow
-	-Wstrict-overflow=2
-
-	-Wctor-dtor-privacy
-	-Wlogical-op
-	-Woverloaded-virtual
-
-	# -Wundef
-	-Werror=non-virtual-dtor
-	-Werror=delete-non-virtual-dtor
-
-	-Wno-sign-compare
-
-	# ##########
-	# GCC 6.1 #
-	# ##########
-	-Wnull-dereference
-	-fdelete-null-pointer-checks
-	-Wduplicated-cond
-	-Wmisleading-indentation
-
-	# -Weverything
-
-	# ======================= #
-	# Enabled by -Weverything #
-	# ======================= #
-
-	# -Wdocumentation
-	# -Wdocumentation-unknown-command
-	# -Wfloat-equal
-
-	# -Wglobal-constructors
-	# -Wexit-time-destructors
-	# -Wmissing-variable-declarations
-	# -Wextra-semi
-	# -Wweak-vtables
-	# -Wno-source-uses-openmp
-	# -Wdeprecated
-	# -Wnewline-eof
-	# -Wmissing-prototypes
-
-	# -Wno-c++98-compat
-	# -Wno-c++98-compat-pedantic
-
-	# ###############################################
-	# Need to check if those are still valid today #
-	# ###############################################
-
-	# -Wimplicit-atomic-properties
-	# -Wmissing-declarations
-	# -Wmissing-prototypes
-	# -Wstrict-selector-match
-	# -Wundeclared-selector
-	# -Wunreachable-code
-
-	# Not a warning, but enable link-time-optimization
-	# TODO: Check out modern CMake version of setting this flag
-	# https://cmake.org/cmake/help/latest/module/CheckIPOSupported.html
-	# -flto
-
-	# Gives meaningful stack traces
-	-fno-omit-frame-pointer
-	-fno-optimize-sibling-calls
-
-	-Wno-redundant-decls
-)
 
 # Flags above don't make sense for MSVC
 if(MSVC)
-	set(SCALABLE_CCD_WARNING_FLAGS)
+  set(SCALABLE_CCD_WARNING_FLAGS
+    /W4 # High warning level (MSVC equivalent of -Wall -Wextra; /Wall is
+        # unusably noisy, enabling off-by-default warnings like C4711/C4710/
+        # C4514/C4820/C5045)
+    /MP # Multi-processor compilation
+        # Silence /W4 warnings that have no counterpart in our GCC/Clang flag set
+        # (-Wall -Wextra -Wpedantic, with -Wconversion intentionally off), so the
+        # MSVC output matches the other compilers:
+    /wd4250 # 'inherits via dominance' (benign; from virtual inheritance)
+    /wd4244 # conversion, possible loss of data (GCC: -Wconversion, off)
+    /wd4267 # size_t -> smaller conversion	 (GCC: -Wconversion, off)
+    /wd4201 # nonstandard nameless struct/union (a GCC/Clang extension)
+    /wd4068 # unknown pragma (cross-compiler #pragma gcc/clang directives)
+    /wd4100 # unreferenced formal parameter. GCC's -Wunused-parameter only
+            # fires here because the Windows CI builds Release: asserts (and the
+            # params they use) are compiled out, and the collision-stencil
+            # virtual overrides legitimately ignore some params.
+	)
+else()
+  set(SCALABLE_CCD_WARNING_FLAGS
+    -Wall
+    -Wextra
+    -Wpedantic
+    # -Werror
+
+    # -Wconversion
+    -Werror=enum-conversion
+    -Werror=float-conversion
+    # Disable these errors for now, because they are too noisy
+    # -Wno-sign-conversion
+    # -Wno-shorten-64-to-32
+    # -Wunsafe-loop-optimizations # broken with C++11 loops
+    -Wunused
+
+    -Wno-long-long # disable warnings about using long long
+    -Wpointer-arith
+    -Wformat=2
+    -Wuninitialized
+    -Wno-maybe-uninitialized
+    -Wcast-qual
+    -Wmissing-noreturn
+    -Wmissing-format-attribute
+    -Wredundant-decls
+
+    -Werror=implicit
+    -Werror=nonnull
+    -Werror=init-self
+    -Werror=main
+    -Werror=extra-semi
+    -Werror=missing-braces
+    -Werror=sequence-point
+    -Werror=return-type
+    -Werror=trigraphs
+    -Warray-bounds
+    -Werror=write-strings
+    -Werror=address
+    -Werror=int-to-pointer-cast
+    -Werror=pointer-to-int-cast
+    -Werror=inconsistent-missing-override
+    -Werror=return-stack-address
+
+    -Wunused-variable
+    -Wunused-but-set-variable
+    -Wno-unused-parameter
+
+    # -Weffc++
+    -Wold-style-cast
+
+    -Wshadow
+
+    -Wstrict-null-sentinel
+    -Woverloaded-virtual
+    -Wsign-promo
+    -Wstack-protector
+    -Wstrict-aliasing
+    -Wstrict-aliasing=2
+
+    # Warn whenever a switch statement has an index of enumerated type and
+    # lacks a case for one or more of the named codes of that enumeration.
+    -Wswitch
+
+    # This is annoying if all cases are already covered.
+    -Wswitch-default
+
+    # This is annoying if there is a default that covers the rest.
+    # -Wswitch-enum
+    -Wswitch-unreachable
+
+    # -Wcovered-switch-default # Annoying warnings from nlohmann::json
+    -Wcast-align
+    -Wdisabled-optimization
+
+    # -Winline # produces warning on default implicit destructor
+    -Winvalid-pch
+    -Wmissing-include-dirs
+    -Wpacked
+    -Wno-padded
+    -Wstrict-overflow
+    -Wstrict-overflow=2
+
+    -Wctor-dtor-privacy
+    -Wlogical-op
+    -Woverloaded-virtual
+
+    # -Wundef
+    -Werror=non-virtual-dtor
+    -Werror=delete-non-virtual-dtor
+
+    -Wno-sign-compare
+
+    -Wno-gnu-anonymous-struct
+    -Wno-nested-anon-types
+
+    # ======= #
+    # GCC 6.1 #
+    # ======= #
+
+    # -Wnull-dereference is added below, but only for non-GCC compilers: GCC
+    # has a long-standing history of false positives on inlined Eigen
+    # expression-template code (e.g. https://gcc.gnu.org/PR94867, seen from
+    # GCC 8 through at least GCC 14).
+    -fdelete-null-pointer-checks
+    -Wduplicated-cond
+    -Wmisleading-indentation
+
+    # -Weverything
+
+    # ======================= #
+    # Enabled by -Weverything #
+    # ======================= #
+
+    # -Wdocumentation
+    # -Wdocumentation-unknown-command
+    # -Wfloat-equal
+
+    # -Wglobal-constructors
+    # -Wexit-time-destructors
+    # -Wmissing-variable-declarations
+    # -Wextra-semi
+    # -Wweak-vtables
+    # -Wno-source-uses-openmp
+    # -Wdeprecated
+    # -Wnewline-eof
+    # -Wmissing-prototypes
+
+    # -Wno-c++98-compat
+    # -Wno-c++98-compat-pedantic
+
+    # ============================================ #
+    # Need to check if those are still valid today #
+    # ============================================ #
+
+    # -Wimplicit-atomic-properties
+    # -Wmissing-declarations
+    # -Wmissing-prototypes
+    # -Wstrict-selector-match
+    # -Wundeclared-selector
+    # -Wunreachable-code
+
+    # Not a warning, but enable link-time-optimization
+    # TODO: Check out modern CMake version of setting this flag
+    # https://cmake.org/cmake/help/latest/module/CheckIPOSupported.html
+    # -flto
+
+    # Gives meaningful stack traces
+    -fno-omit-frame-pointer
+    -fno-optimize-sibling-calls
+
+    -Wno-redundant-decls
+  )
+
+  if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    list(APPEND IPC_TOOLKIT_WARNING_FLAGS -Wnull-dereference)
+  endif()
+
+  # GCC 16 mis-analyzes TBB's enumerable_thread_specific. GCC <= 15 and Clang
+  # are clean, so only suppress it where it fires.
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU"
+    AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 16)
+    list(APPEND IPC_TOOLKIT_WARNING_FLAGS -Wno-array-bounds)
+  endif()
 endif()
 
 add_library(scalable_ccd_warnings INTERFACE)

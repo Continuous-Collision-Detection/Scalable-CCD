@@ -382,6 +382,7 @@ bool ccd(
 {
     const int nbr = d_data.size();
 
+    CCDBuffer buffer;
     CCDBuffer* d_buffer;
     {
         const size_t unit_size = memory_handler->MAX_UNIT_SIZE;
@@ -390,7 +391,6 @@ bool ccd(
             "CCD Buffer of size {:d} ({:g} GB)", unit_size,
             sizeof(CCDDomain) * unit_size / 1e9);
 
-        CCDBuffer buffer;
         gpuErrchk(cudaMalloc(&buffer.m_data, sizeof(CCDDomain) * unit_size));
         buffer.m_starting_size = nbr;
         buffer.m_capacity = unit_size;
@@ -453,6 +453,10 @@ bool ccd(
     gpuErrchk(cudaMemcpy(
         &overflow, &(d_buffer->m_overflow_flag), sizeof(int),
         cudaMemcpyDeviceToHost));
+
+    gpuErrchk(cudaFree(buffer.m_data));
+    gpuErrchk(cudaFree(d_buffer));
+
     return overflow;
 }
 

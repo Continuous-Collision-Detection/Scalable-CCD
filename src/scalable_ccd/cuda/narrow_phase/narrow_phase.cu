@@ -158,11 +158,11 @@ void narrow_phase(
             {
                 SCALABLE_CCD_GPU_PROFILE_POINT("create_ccd_data");
 
-                d_ccd_data.resize(d_overlaps.size());
+                d_ccd_data.resize(n_queries_to_process);
                 add_data<is_vf><<<d_ccd_data.size() / threads + 1, threads>>>(
                     d_vertices_t0, d_vertices_t1, d_edges, d_faces,
-                    thrust::raw_pointer_cast(d_overlaps.data()),
-                    d_overlaps.size(), ms,
+                    thrust::raw_pointer_cast(d_overlaps.data()) + start_id,
+                    n_queries_to_process, ms,
                     thrust::raw_pointer_cast(d_ccd_data.data()));
                 gpuErrchk(cudaDeviceSynchronize());
             }
