@@ -303,10 +303,13 @@ ccd_kernel(CCDBuffer* const buffer, CCDData* const data, Scalar* const toi)
     if (CONFIG.max_iter >= 0 && data_in.nbr_checks > CONFIG.max_iter) {
         return;
     }
-    // else if (buffer.mp_remaining > buffer->capacity() / 2) { // overflow
-    //     atomicCAS(&buffer->overflow_flag, 0, 1);
-    //     return;
-    // }
+    // Abort the level if its children could overflow the buffer: a level of m
+    // domains can push up to 2m children, so m + 2m must fit in capacity - 1.
+    // The overflow flag makes the narrow phase rerun with a larger buffer.
+    else if (buffer->starting_size() > (buffer->capacity() - 1) / 3) {
+        atomicCAS(&buffer->m_overflow_flag, 0, 1);
+        return;
+    }
 
     Scalar true_tol = 0; // set by origin_in_inclusion_function
     bool box_in;         // set by origin_in_inclusion_function
